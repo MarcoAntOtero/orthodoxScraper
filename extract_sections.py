@@ -119,6 +119,65 @@ def remove_garbled_duplicates(text: str) -> str:
     return text[:cut_start] + text[cut_end:]
 
 
+def strip_leading_title_and_tone(text: str) -> str:
+    """
+    Removes a leading title + Mode/Tone marker (e.g. "For the
+    Myrrhbearers.\nMode pl. 2.\n") from the very start of a hymn's text,
+    leaving just the hymn prose itself. Needed for the Glory/Both-now
+    shared text specifically -- unlike the per-tone chunks split_by_tone
+    produces (where that prefix is expected/kept), this text comes from
+    split_doxology cutting the section at "Glory.", so nothing has
+    stripped its own leading label yet.
+
+    ".*?" is non-greedy, so it matches as LITTLE text as possible before
+    the Mode/Tone marker -- meaning this works whether there's a title
+    line first ("For the Myrrhbearers.\nMode pl. 2.") or the marker is
+    the very first thing ("Mode 2.\nWhen he took down...").
+    """
+    match = re.match(r".*?(?:Grave Mode\.|(?:Mode|Tone)\s*(?:pl\.\s*\d+|\d+)\.?)\s*", text, re.IGNORECASE | re.DOTALL)
+    if match:
+        return text[match.end():].strip()
+    return text.strip()
+
+
+# Matches a trailing source citation ("From Pentecostarion - - -") and/or
+# category label ("For the Apostles.") at the very end of a hymn's text.
+# Both describe whatever hymn comes NEXT in the document, but since
+# split_by_tone draws each chunk's boundary right at the following "Mode
+# N." marker (not before these lines), they end up glued onto the tail of
+# the CURRENT chunk instead. Both pieces are optional so this safely
+# no-ops (just trims trailing whitespace) when neither is present.
+TRAILING_LABEL_PATTERN = re.compile(
+    r"\s*(?:From \w+ - - -\s*)?(?:For the \w+\.\s*)?$",
+    re.IGNORECASE,
+)
+
+
+def strip_trailing_labels(text: str) -> str:
+    return TRAILING_LABEL_PATTERN.sub("", text).strip()
+
+
+def strip_citation_brackets(text: str) -> str:
+    """
+    Removes translator/source citation tags like "[SAAS]" or "[SD]" from
+    displayed text. Only call this AFTER any splitting logic that needed
+    those brackets as a boundary marker (see _split_verse_from_rest) --
+    stripping them earlier removes the only reliable signal that function
+    has for some documents.
+    """
+    return re.sub(r"\s*\[[A-Z]+\]\s*", " ", text).strip()
+
+
+def clean_doxology_text(text: str) -> str:
+    """Full cleanup pipeline for Glory/Both-now shared hymn text."""
+    return strip_leading_title_and_tone(strip_citation_brackets(strip_trailing_labels(text)))
+
+
+def clean_prayer_text(text: str) -> str:
+    """Full cleanup pipeline for a verse's prayer text."""
+    return strip_citation_brackets(strip_trailing_labels(text))
+
+
 # The Stichera always use the same 6 verses
 STICHERA_VERSE_PATTERNS = [
     r"If You, O Lord, should mark (?:transgression|iniquities), O Lord, who (?:would|shall) stand\? "
@@ -230,7 +289,11 @@ def split_aposticha_verses(tone_chunk_text: str) -> list[dict]:
 
     # if there are no verses at all, the whole chunk is just one hymn/prayer with no verse.
     intro_end = verse_matches[0].start() if verse_matches else len(cleaned)
-    intro_text = cleaned[:intro_end].strip()
+    # This intro text is captured straight from the start of the chunk,
+    # which -- same as split_by_tone's chunks generally -- still has its
+    # leading "<Title>.\nMode N." prefix attached (e.g. "Mode 2. For the
+    # Cross."). Strip it here so it doesn't end up in the displayed prayer.
+    intro_text = strip_leading_title_and_tone(cleaned[:intro_end])
     if intro_text:
         pairs.append({"verse": "", "prayer": intro_text})
 
@@ -306,7 +369,7 @@ def get_tone(section_text: str) -> str:
     grave_mode = re.compile(r"Grave Mode\.", re.IGNORECASE).search(section_text)
     if grave_mode:
         return "Grave"
-    match = re.search(r"(?:Mode|Tone)\s*(pl\.\s*\d+|\d+)\.?", section_text, re.IGNORECASE)
+    match = re.search(r"(?:Mode|Tone)\s*(?:pl\.\s*)?(\d+)\.?", section_text, re.IGNORECASE)
     return match.group(1).strip() if match else ""
 
 
@@ -407,71 +470,86 @@ def split_doxology(section_text: str) -> tuple[str, dict | None]:
     return hymns_text, split_glory_both_now(doxology_text)
 
 
+def _assemble_doxology(sections: dict, key: str, doxology: dict | None) -> None:
+    """
+    Stores a section's Glory/Both-now data under "<key>_glory",
+    "<key>_both_now", and "<key>_combined_status". Shared by all three
+    sections (stichera/aposticha/apolytikion) since split_doxology()
+    always returns the same shape regardless of which section it came
+    from -- only the dict key prefix differs.
+    """
+    if not doxology:
+        return
+    sections[f"{key}_glory"].append({
+        "tone": doxology["glory_tone"],
+        "combined_text": clean_doxology_text(doxology["glory_text"]),
+    })
+    sections[f"{key}_both_now"].append({
+        "tone": doxology["both_now_tone"],
+        "combined_text": clean_doxology_text(doxology["both_now_text"]),
+    })
+    sections[f"{key}_combined_status"] = doxology["combined"]
+
+
+def _tone_chunks(hymns_text: str) -> list[str]:
+    """
+    Splits a section's hymn text into per-tone chunks, with the garbled-
+    duplicate cleanup applied to each one. Shared by all three sections --
+    the per-chunk (not whole-document) scoping matters here, see
+    remove_garbled_duplicates()'s docstring for why.
+    """
+    return [remove_garbled_duplicates(chunk) for chunk in split_by_tone(hymns_text)]
+
+
+def _process_verse_section(hymns_text: str, verse_split_fn) -> list[dict]:
+    """
+    Shared by Stichera and Aposticha, which have the identical shape once
+    you swap out which verse-finding function does the splitting
+    (split_verse_prayer for Stichera's fixed Psalm verses, or
+    split_aposticha_verses for the "Verse:"-labeled kind). Apolytikion
+    doesn't use this -- it has no verses, just tone + hymn text.
+    """
+    entries = []
+    for chunk in _tone_chunks(hymns_text):
+        tone = get_tone(chunk)
+        for pair in verse_split_fn(chunk):
+            entries.append({"tone": tone, "verse": pair["verse"], "prayer": clean_prayer_text(pair["prayer"])})
+    return entries
+
+
 def parse_document(filename: str) -> dict:
     """Tie it all together into one dict"""
     text = extract_text(filename)
     metadata = get_metadata(text)
     sections = {}
-    sections["stichera_glory"] = []
-    sections["stichera_both_now"] = []
-    sections["aposticha_glory"] = []
-    sections["aposticha_both_now"] = []
-    sections["apolytikion_glory"] = []
-    sections["apolytikion_both_now"] = []
+    for key in ("stichera", "aposticha", "apolytikion"):
+        sections[f"{key}_glory"] = []
+        sections[f"{key}_both_now"] = []
+
     if "Stichera" in text:
         section_text = get_section(text, r"Stichera", r"\(No Entrance\)")
         hymns_text, doxology = split_doxology(section_text)
-        if doxology:
-            sections["stichera_glory"].append({"tone": doxology["glory_tone"], "combined_text": doxology["glory_text"]})
-            sections["stichera_both_now"].append({"tone": doxology["both_now_tone"], "combined_text": doxology["both_now_text"]})
-        # Applied per-chunk, not to the whole document
-        # text legitimately repeats short refrains (e.g. "Christ is risen
-        # from the dead..." sung three times), which would false-positive
-        # as a "duplicate" if checked at document scope. Within a single
-        # hymn's own text, a repeat is never intentional.
-        chunks = [remove_garbled_duplicates(chunk) for chunk in split_by_tone(hymns_text)]
-        split_verse_prayer_pairs = [split_verse_prayer(chunk) for chunk in chunks]
-        sections["stichera"] = []
-        for chunk, verse_prayer_pairs in zip(chunks, split_verse_prayer_pairs):
-            tone = get_tone(chunk)
-            for pair in verse_prayer_pairs:
-                sections["stichera"].append({"tone": tone, "verse": pair["verse"], "prayer": pair["prayer"]})
+        _assemble_doxology(sections, "stichera", doxology)
+        sections["stichera"] = _process_verse_section(hymns_text, split_verse_prayer)
 
     if "Aposticha" in text:
         section_text = get_section(text, r"Aposticha(?:\s+of the Feast)?\.", r"Stand for the reading of prayers")
         hymns_text, doxology = split_doxology(section_text)
-        if doxology:
-            sections["aposticha_glory"].append({"tone": doxology["glory_tone"], "combined_text": doxology["glory_text"]})
-            sections["aposticha_both_now"].append({"tone": doxology["both_now_tone"], "combined_text": doxology["both_now_text"]})
-        # Applied per-chunk, not to the whole documente
-        # text legitimately repeats short refrains (e.g. "Christ is risen
-        # from the dead..." sung three times), which would false-positive
-        # as a "duplicate" if checked at document scope. Within a single
-        # hymn's own text, a repeat is never intentional.
-        chunks = [remove_garbled_duplicates(chunk) for chunk in split_by_tone(hymns_text)]
-        split_verse_prayer_pairs = [split_aposticha_verses(chunk) for chunk in chunks]
-        sections["aposticha"] = []
-        for chunk, verse_prayer_pairs in zip(chunks, split_verse_prayer_pairs):
-            tone = get_tone(chunk)
-            for pair in verse_prayer_pairs:
-                sections["aposticha"].append({"tone": tone, "verse": pair["verse"], "prayer": pair["prayer"]})
+        _assemble_doxology(sections, "aposticha", doxology)
+        sections["aposticha"] = _process_verse_section(hymns_text, split_aposticha_verses)
 
     if "Apolytikion" in text or "Apolytikia" in text:
-        section_text = get_section(text, r"Apolytiki(?:on|a)\.", r"\(The .ektenia. litany has been omitted\)")
+        section_text = get_section(text, r"Apolytiki(?:on|a)\.", r"\(The .ektenia. litany has been omitted\.\)")
         hymns_text, doxology = split_doxology(section_text)
-        if doxology:
-            sections["apolytikion_glory"].append({"tone": doxology["glory_tone"], "combined_text": doxology["glory_text"]})
-            sections["apolytikion_both_now"].append({"tone": doxology["both_now_tone"], "combined_text": doxology["both_now_text"]})
-        # Applied per-chunk, not to the whole document
-        # text legitimately repeats short refrains (e.g. "Christ is risen
-        # from the dead..." sung three times), which would false-positive
-        # as a "duplicate" if checked at document scope. Within a single
-        # hymn's own text, a repeat is never intentional.
-        chunks = [remove_garbled_duplicates(chunk) for chunk in split_by_tone(hymns_text)]
-        sections["apolytikion"] = [{"tone": get_tone(chunk), "text": chunk} for chunk in chunks]
+        _assemble_doxology(sections, "apolytikion", doxology)
+        sections["apolytikion"] = [
+            {"tone": get_tone(chunk), "text": clean_doxology_text(chunk)}
+            for chunk in _tone_chunks(hymns_text)
+        ]
+
     return {
         "metadata": metadata,
-        "sections": sections
+        "sections": sections,
     }
 
 

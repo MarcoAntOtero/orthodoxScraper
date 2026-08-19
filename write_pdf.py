@@ -1,212 +1,213 @@
 from fpdf import FPDF
 from datetime import date
 
-# Auto-generated from weekly document
-vespers_variable = {'fellowship': '',
- 'date': '',
- 'memory': 'Memory of our St. Isidore Pelusiotes',
- 'stichera': [{'kind': 'verse_prayer',
-               'tone': '1',
-               'verse': 'If You, O Lord, should mark transgression, O Lord, who would stand? For '
-                        'there is forgiveness with You.',
-               'prayer': 'We celebrate the divine gift: namely that Christ our God * appeared on '
-                         'earth to save us. Being born as an infant * immutably from Mary the '
-                         'Virgin, today * in the Temple His Mother brings * Him to His Father and '
-                         'God, and He is received * in the arms of Elder Symeon.',
-               'text': 'If You, O Lord, should mark transgression, O Lord, who would stand? For '
-                       'there is forgiveness with You. We celebrate the divine gift: namely that '
-                       'Christ our God * appeared on earth to save us. Being born as an infant * '
-                       'immutably from Mary the Virgin, today * in the Temple His Mother brings * '
-                       'Him to His Father and God, and He is received * in the arms of Elder '
-                       'Symeon.'},
-              {'kind': 'verse_prayer',
-               'tone': '1',
-               'verse': 'Because of Your law, O Lord, I waited for You; my soul waited for Your '
-                        'word. My soul hopes in the Lord.',
-               'prayer': 'You had appeared to the Prophets, as far as possible * for them of old, '
-                         'O Jesus. But now, O God the Logos, * You willingly appeared to the world '
-                         'in the flesh * from the Virgin Mary, O Christ, * and You revealed Your '
-                         'salvation to all mankind * born of Adam, O benevolent Lord.',
-               'text': 'Because of Your law, O Lord, I waited for You; my soul waited for Your '
-                       'word. My soul hopes in the Lord. You had appeared to the Prophets, as far '
-                       'as possible * for them of old, O Jesus. But now, O God the Logos, * You '
-                       'willingly appeared to the world in the flesh * from the Virgin Mary, O '
-                       'Christ, * and You revealed Your salvation to all mankind * born of Adam, O '
-                       'benevolent Lord.'},
-              {'kind': 'verse_prayer',
-               'tone': '1',
-               'verse': 'From the morning watch until night; from the morning watch until night, '
-                        'let Israel hope in the Lord.',
-               'prayer': 'You are the One who on Sinai ordered the Law of old, * and now today in '
-                         'Zion, You fulfill its injunctions, * accepting to be brought as a babe '
-                         'in the flesh * by Your Mother with sacrifice * into the Temple of God, '
-                         'and to be embraced * in the arms of Elder Symeon.',
-               'text': 'From the morning watch until night; from the morning watch until night, '
-                       'let Israel hope in the Lord. You are the One who on Sinai ordered the Law '
-                       'of old, * and now today in Zion, You fulfill its injunctions, * accepting '
-                       'to be brought as a babe in the flesh * by Your Mother with sacrifice * '
-                       'into the Temple of God, and to be embraced * in the arms of Elder Symeon.'},
-              {'kind': 'verse_prayer',
-               'tone': '4',
-               'verse': 'For with the Lord there is mercy, and with Him is abundant redemption; '
-                        'and He shall redeem Israel from all his transgressions.',
-               'prayer': 'You were lifted to God on high, O all-wise one, throughout your life * '
-                         'in both the contemplative and the active life. * Your contemplation was '
-                         'founded on the practice of virtues all. * And you wisely loved the '
-                         'height * of desires, namely the Lord, * whom you have attained. * You '
-                         'were granted a blessed end according to your longing, and illumined * by '
-                         'the divine and tri-solar Light.',
-               'text': 'For with the Lord there is mercy, and with Him is abundant redemption; and '
-                       'He shall redeem Israel from all his transgressions. You were lifted to God '
-                       'on high, O all-wise one, throughout your life * in both the contemplative '
-                       'and the active life. * Your contemplation was founded on the practice of '
-                       'virtues all. * And you wisely loved the height * of desires, namely the '
-                       'Lord, * whom you have attained. * You were granted a blessed end according '
-                       'to your longing, and illumined * by the divine and tri-solar Light.'},
-              {'kind': 'verse_prayer',
-               'tone': '4',
-               'verse': 'Praise the Lord, all you Gentiles; praise Him, all you peoples.',
-               'prayer': 'With the grace of your words, O Saint, * as with showers and waterfalls, '
-                         '* godly-minded people are all watered by you. * You put your mouth to '
-                         'the chalice of the wisdom of God, as if * to a well, and richly drew * '
-                         'for yourself and distributed widely everywhere, * by your letters and '
-                         'teachings and your counsels * the divine rays of your doctrines, * '
-                         'devout and praiseworthy Isidore.',
-               'text': 'Praise the Lord, all you Gentiles; praise Him, all you peoples. With the '
-                       'grace of your words, O Saint, * as with showers and waterfalls, * '
-                       'godly-minded people are all watered by you. * You put your mouth to the '
-                       'chalice of the wisdom of God, as if * to a well, and richly drew * for '
-                       'yourself and distributed widely everywhere, * by your letters and '
-                       'teachings and your counsels * the divine rays of your doctrines, * devout '
-                       'and praiseworthy Isidore.'},
-              {'kind': 'verse_prayer',
-               'tone': '4',
-               'verse': 'For His mercy rules over us; and the truth of the Lord endures forever.',
-               'prayer': 'All-devout Saint, through self-control * you indeed put to death the '
-                         'mind * set upon the flesh, donning a life-bearing death. * And you '
-                         'increased the capacity * of your soul, O Isidore, * manifestly making it '
-                         '* more receptive to the divine * Spirit’s gifts of grace. * You became '
-                         'thus the vessel of the teachings that were truly God-inspired, * and '
-                         'where ineffable wisdom dwelt.',
-               'text': 'For His mercy rules over us; and the truth of the Lord endures forever. '
-                       'All-devout Saint, through self-control * you indeed put to death the mind '
-                       '* set upon the flesh, donning a life-bearing death. * And you increased '
-                       'the capacity * of your soul, O Isidore, * manifestly making it * more '
-                       'receptive to the divine * Spirit’s gifts of grace. * You became thus the '
-                       'vessel of the teachings that were truly God-inspired, * and where '
-                       'ineffable wisdom dwelt.'},
-              {'kind': 'doxology', 'tone': '4', 'text': 'Glory. Both now. For the Feast.'},
-              {'kind': 'prayer',
-               'tone': 'grave',
-               'text': 'Our Savior, the Light of revelation to the nations, ⁄ You descended from '
-                       'heaven to earth! ⁄ You came forth from the Virgin; ⁄ You rested in the '
-                       'arms of righteous Simeon. ⁄ It was fitting that an old man should '
-                       'recognize You, ⁄ for You came to release him, Giver of life. ⁄⁄ This was '
-                       'Your promise, Lord of great mercy!'}],
- 'aposticha': [{'kind': 'prayer',
-                'tone': '2',
-                'text': 'Symeon the devout, * receive the Lord of glory * as once the Holy Spirit '
-                        '* revealed to you, O just one. * Behold! for He has now arrived. Verse:'},
-               {'kind': 'verse_prayer',
-                'tone': '2',
-                'verse': 'Lord, now You are letting Your servant depart in peace, according to '
-                         'Your word; for my eyes have seen Your salvation which You have prepared '
-                         'before the face of all peoples.',
-                'prayer': 'Carrying in her arms * the Master and Creator * now as a newborn '
-                          'infant, * into the Temple enters the Virgin all-immaculate.',
-                'text': 'Lord, now You are letting Your servant depart in peace, according to Your '
-                        'word; for my eyes have seen Your salvation which You have prepared before '
-                        'the face of all peoples. Carrying in her arms * the Master and Creator * '
-                        'now as a newborn infant, * into the Temple enters the Virgin '
-                        'all-immaculate.'},
-               {'kind': 'verse_prayer',
-                'tone': '2',
-                'verse': 'A light to bring revelation to the Gentiles, and the glory of Your '
-                         'people Israel.',
-                'prayer': 'Great and amazing is * the mystery and awesome! * The Master who '
-                          'caresses * all things and fashions infants * is handled as a babe in '
-                          'arms.',
-                'text': 'A light to bring revelation to the Gentiles, and the glory of Your people '
-                        'Israel. Great and amazing is * the mystery and awesome! * The Master who '
-                        'caresses * all things and fashions infants * is handled as a babe in '
-                        'arms.'},
-               {'kind': 'prayer',
-                'tone': '2',
-                'text': 'Today Simeon receives in his arms ⁄ the Lord of glory whom Moses saw of '
-                        'old on Sinai ⁄ when in the cloud and darkness he was given the tables of '
-                        'the law. ⁄ This is He Who has spoken through the prophets! ⁄ He is the '
-                        'Creator of the law! ⁄ This is He Whom David foretold: ⁄⁄ He is fearful to '
-                        'all, yet shows us great mercy!'}],
- 'apolytikion': [{'kind': 'apolytikion',
-                  'title': 'For the Devout Man',
-                  'tone': 'pl. 4',
-                  'text': 'In you, O Father, is preserved undistorted what was made in the image '
-                          'of God; for taking up the cross, you followed Christ and by example '
-                          'taught, that we should overlook the flesh, since it passes away, and '
-                          'instead look after the soul, since it is immortal. And therefore, O '
-                          'devout Isidore, your spirit rejoices with the angels.'},
-                 {'kind': 'apolytikion',
-                  'title': 'of the Feast',
-                  'tone': '1',
-                  'text': 'Lady full of grace, rejoice, O Virgin Theotokos, for Christ our God, '
-                          'the Sun of righteousness has risen from you and He illumined those in '
-                          'darkness. And you, righteous Elder, be glad in heart, receiving in your '
-                          'embraces the One who liberates our souls and bestows on us the '
-                          'Resurrection.'}]}
+GLORY_BOTH_NOW_PATTERNS = [
+    "Glory to the Father and to the Son and to the Holy Spirit.",
+    "Both now and ever, and unto the ages of ages. Amen. ",
+]
 
 
-#start page then add title and date
-pdf = FPDF()
-pdf.add_page()
-pdf.set_font("Times", size=12)
-
-# Header: Church Name
-pdf.set_font("Times", size=12)
-pdf.multi_cell(w=0, h=6, text="Georgetown Orthodox Christian Fellowship", align='L', new_x="LMARGIN", new_y="NEXT")
-
-# Date
-pdf.multi_cell(w=0, h=6, text="Vespers: Tuesday, April 21, 2026", align='L', new_x="LMARGIN", new_y="NEXT")
-
-# Memory of Saint (In Red)
-pdf.set_text_color(255, 0, 0) 
-# Use a specific height or ln() to ensure space
-pdf.multi_cell(w=0, h=6, text=vespers_variable['memory'], align='L', new_x="LMARGIN", new_y="NEXT")
-
-# Instructions (In Italics & Black)
-pdf.set_text_color(0, 0, 0)
-pdf.set_font("Times", style="I", size=12)
-pdf.multi_cell(w=0, h=6, text="Feel free to read or chant during the service!", align='L', new_x="LMARGIN", new_y="NEXT")
-pdf.ln(4) # Adds a small vertical gap before the liturgical text
-
-
-# Stichera Section and title
-pdf.set_font("Times", style='U', size=12) # red and underlined for the title of the section
-pdf.set_text_color(255, 0, 0)
-pdf.cell(w=0, h=6, text="Stichera", new_x="RIGHT", new_y="TOP")
-oldTone = None
-
-# For the long liturgical texts:
-for verse_prayer in vespers_variable['stichera']:
-        
-        # Add the verse in bold
-        if verse_prayer['tone'] != oldTone:
-                pdf.set_text_color(255, 0, 0) # red for the tone change
-                pdf.set_font("Times", style="B", size=12
-                             
-        pdf.set_font("Times", style="B", size=12)
+def oldToneChecker(oldTone, newTone, pdf):
+    if oldTone != newTone:
+        oldTone = newTone
+        tone_text = f"Tone {newTone}. "
+        pdf.set_text_color(255, 0, 0)
+        pdf.set_font(style="", size=12)
+        pdf.write(h=6, text=tone_text)
         pdf.set_text_color(0, 0, 0)
-        pdf.multi_cell(w=0, h=6, txt=verse_prayer['verse'], align='L', new_x="LMARGIN", new_y="NEXT")
-        
-        # Add the prayer in regular font
-        pdf.set_font("Times", size=12)
-        pdf.multi_cell(w=0, h=6, txt=verse_prayer['prayer'], align='L', new_x="LMARGIN", new_y="NEXT")
-        
-        # Add a small gap between stichera
+    return oldTone
+
+
+def write_glory_both_now(pdf, data, section_prefix, oldTone):
+    """
+    Writes the Glory/Both-now doxology for one section (stichera,
+    aposticha, or apolytikion), using the same Tone (bold red) / official
+    phrase (bold italic) / hymn text (regular) paragraph structure as the
+    rest of the document. Handles both the combined case (one shared hymn
+    serves both Glory and Both now) and the separate case (each has its
+    own hymn), since extract_sections.split_glory_both_now already tells
+    us which one applies via "<prefix>_combined_status".
+    """
+    combined_status = data['sections'][f'{section_prefix}_combined_status']
+
+    if combined_status:
+        combined = data['sections'][f'{section_prefix}_glory'][0]
+        oldTone = oldToneChecker(oldTone, combined['tone'], pdf)
+
+        phrase = GLORY_BOTH_NOW_PATTERNS[0] + " " + GLORY_BOTH_NOW_PATTERNS[1] + " "
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font(style="BI", size=12)
+        pdf.write(h=6, text=phrase)
+
+        pdf.set_font(style="", size=12)
+        pdf.write(h=6, text=combined['combined_text'])
+
+        print(phrase + combined['combined_text'])
+    else:
+        glory = data['sections'][f'{section_prefix}_glory'][0]
+        oldTone = oldToneChecker(oldTone, glory['tone'], pdf)
+
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font(style="BI", size=12)
+        pdf.write(h=6, text=GLORY_BOTH_NOW_PATTERNS[0] + " ")
+
+        pdf.set_font(style="", size=12)
+        pdf.write(h=6, text=glory['combined_text'])
+
+        print(GLORY_BOTH_NOW_PATTERNS[0] + " " + glory['combined_text'])
+
+        pdf.ln()
         pdf.ln(4)
 
+        both_now = data['sections'][f'{section_prefix}_both_now'][0]
+        oldTone = oldToneChecker(oldTone, both_now['tone'], pdf)
+
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font(style="BI", size=12)
+        pdf.write(h=6, text=GLORY_BOTH_NOW_PATTERNS[1] + " ")
+
+        pdf.set_font(style="", size=12)
+        pdf.write(h=6, text=both_now['combined_text'])
+
+        print(GLORY_BOTH_NOW_PATTERNS[1] + " " + both_now['combined_text'])
+
+    pdf.ln()
+    pdf.ln(4)
+    return oldTone
 
 
+if __name__ == "__main__":
+    import pprint
+    from extract_sections import parse_document
 
+    STICHERA_VERSE_PATTERNS = [
+        "If You, O Lord, should mark iniquities, O Lord, who shall stand? For with You there is forgiveness. ",
+        "Because of Your Name have I waited for You, O Lord; my soul has waited upon Your word, my soul has hoped in the Lord. ",
+        "From the morning watch until night, from the morning watch let Israel trust in the Lord. ",
+        "For with the Lord there is mercy and with Him is abundant redemption, and He will deliver Israel from all his iniquities. ",
+        "Praise the Lord, all you nations; praise Him, all you peoples. ",
+        "For His mercy is great towards us, and the truth of the Lord endures forever. ",
+    ]
 
+    data = parse_document("For_vespers_variable.pdf")
+    pprint.pprint(data, width=100)
+    pdf = FPDF()
 
-#pdf.output("simple_output.pdf")
+    pdf.add_page()
+    pdf.add_font("Times New Roman", "", "TimesNewRoman.ttf")
+    pdf.add_font("Times New Roman", "B", "TimesNewRomanBold.ttf")
+    pdf.add_font("Times New Roman", "I", "TimesNewRomanItalic.ttf")
+    pdf.add_font("Times New Roman", "BI", "TimesNewRomanBoldItalic.ttf")
+    pdf.set_font("Times New Roman", size=12)
+
+    # Header: Church Name
+    header_text = "Georgetown Orthodox Christian Fellowship"
+    print(header_text)
+    pdf.multi_cell(w=0, h=6, text=header_text, align='C', new_x="LMARGIN", new_y="NEXT")
+
+    # Date
+    date_text = "Vespers: " + date.today().strftime("%A, %B %d, %Y")
+    print(date_text)
+    pdf.multi_cell(w=0, h=6, text=date_text, align='C', new_x="LMARGIN", new_y="NEXT")
+
+    # Memory of Saint (In Red)
+    pdf.set_text_color(255, 0, 0)
+    print(data['metadata']['memory'])
+    pdf.multi_cell(w=0, h=6, text=data['metadata']['memory'], align='C', new_x="LMARGIN", new_y="NEXT")
+
+    # Instructions (In Italics & Black)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font(style="I", size=12)
+    instructions_text = "Feel free to read or chant during the service!"
+    print(instructions_text)
+    pdf.multi_cell(w=0, h=6, text=instructions_text, align='C', new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(4)
+
+    # Stichera Section and title
+    pdf.set_font(style='U', size=12)
+    pdf.set_text_color(255, 0, 0)
+    print("Stichera")
+    pdf.multi_cell(w=0, h=6, text="Stichera", align='L', new_x="LMARGIN", new_y="NEXT")
+    oldTone = None
+
+    # Loop through the stichera
+    for i, verse_prayer in enumerate(data['sections']['stichera']):
+        printed_paragraph = []
+
+        if verse_prayer['tone'] != oldTone:
+            oldTone = oldToneChecker(oldTone, verse_prayer['tone'], pdf)
+            printed_paragraph.append(f"Tone {verse_prayer['tone']}. ")
+
+        # Verses are Bold + Italic ("BI") -- distinct from the tone label
+        # (Bold only, in red) and the prayer text that follows (regular).
+        printed_paragraph.append(STICHERA_VERSE_PATTERNS[i])
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font(style="BI", size=12)
+        pdf.write(h=6, text=STICHERA_VERSE_PATTERNS[i])
+
+        printed_paragraph.append(verse_prayer['prayer'])
+        pdf.set_font(style="", size=12)
+        pdf.write(h=6, text=verse_prayer['prayer'])
+
+        print("".join(printed_paragraph))
+
+        pdf.ln()
+        pdf.ln(4)
+
+    oldTone = write_glory_both_now(pdf, data, "stichera", oldTone)
+
+    # Aposticha now
+    pdf.set_text_color(255, 0, 0)
+    pdf.set_font(style='U', size=12)
+    pdf.multi_cell(w=0, h=6, text="Aposticha", align='L', new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(style="", size=12)
+    pdf.write(h=6, text=f"Tone {data['sections']['aposticha'][0]['tone']} ")
+    pdf.set_text_color(0, 0, 0)
+    pdf.write(h=6, text=data['sections']['aposticha'][0]['prayer'])
+    pdf.ln()
+    pdf.ln(4)
+
+    for i, verse_prayer in enumerate(data['sections']['aposticha'][1:]):
+        oldTone = oldToneChecker(oldTone, verse_prayer['tone'], pdf)  # check tone change and print if necessary
+        pdf.set_font(style="BI", size=12)
+        pdf.write(h=6, text=verse_prayer['verse'])
+
+        pdf.set_font(style="", size=12)
+        pdf.write(h=6, text=verse_prayer['prayer'])
+
+        pdf.ln()
+        pdf.ln(4)
+
+    oldTone = write_glory_both_now(pdf, data, "aposticha", oldTone)
+
+    # Apolytikion now
+    pdf.ln()
+    pdf.ln(4)
+    pdf.set_text_color(255, 0, 0)
+    pdf.set_font(style='U', size=12)
+    pdf.multi_cell(w=0, h=6, text="Apolytikion", align='L', new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(style="", size=12)
+    pdf.write(h=6, text=f"Tone {data['sections']['apolytikion'][0]['tone']} ")
+    pdf.set_text_color(0, 0, 0)
+    pdf.write(h=6, text=data['sections']['apolytikion'][0]['text'])
+    pdf.ln()
+    pdf.ln(4)
+
+    oldTone = write_glory_both_now(pdf, data, "apolytikion", oldTone)
+
+    # Troparion for Mary of Egypt
+    pdf.ln()
+    pdf.ln(4)
+    pdf.set_text_color(255, 0, 0)
+    pdf.set_font(style='U', size=12)
+    pdf.write(h=6, text="Troparion for Mary of Egypt ")
+    pdf.set_font(style="", size=12)
+    pdf.write(h=6, text="Tone 8 ")
+    pdf.set_text_color(0, 0, 0)
+    pdf.write(h=6, text="In you the image was preserved with exactness, O Mother; "
+              "for taking up your cross, you did follow Christ, and by your de"
+              "eds you did teach us to overlook the flesh, for it passes away, "
+              "but to attend to the soul since it is immortal. Wherefore, O righteous "
+              "Mary, your spirit rejoices with the Angels.")
+
+    pdf.output("output.pdf")
