@@ -28,6 +28,14 @@ def write_glory_both_now(pdf, data, section_prefix, oldTone):
     own hymn), since extract_sections.split_glory_both_now already tells
     us which one applies via "<prefix>_combined_status".
     """
+    # Not every section has a Glory/Both-now doxology every week (e.g. an
+    # Apolytikion section can be just the one hymn, nothing after it) --
+    # extract_sections only sets "<prefix>_glory" and "_combined_status" at
+    # all when split_doxology actually found one. No entry means nothing
+    # to write here, so skip rather than assuming the key exists.
+    if not data['sections'][f'{section_prefix}_glory']:
+        return oldTone
+
     combined_status = data['sections'][f'{section_prefix}_combined_status']
 
     if combined_status:
@@ -76,21 +84,23 @@ def write_glory_both_now(pdf, data, section_prefix, oldTone):
     return oldTone
 
 
-if __name__ == "__main__":
-    import pprint
-    from extract_sections import parse_document
+STICHERA_VERSE_PATTERNS = [
+    "If You, O Lord, should mark iniquities, O Lord, who shall stand? For with You there is forgiveness. ",
+    "Because of Your Name have I waited for You, O Lord; my soul has waited upon Your word, my soul has hoped in the Lord. ",
+    "From the morning watch until night, from the morning watch let Israel trust in the Lord. ",
+    "For with the Lord there is mercy and with Him is abundant redemption, and He will deliver Israel from all his iniquities. ",
+    "Praise the Lord, all you nations; praise Him, all you peoples. ",
+    "For His mercy is great towards us, and the truth of the Lord endures forever. ",
+]
 
-    STICHERA_VERSE_PATTERNS = [
-        "If You, O Lord, should mark iniquities, O Lord, who shall stand? For with You there is forgiveness. ",
-        "Because of Your Name have I waited for You, O Lord; my soul has waited upon Your word, my soul has hoped in the Lord. ",
-        "From the morning watch until night, from the morning watch let Israel trust in the Lord. ",
-        "For with the Lord there is mercy and with Him is abundant redemption, and He will deliver Israel from all his iniquities. ",
-        "Praise the Lord, all you nations; praise Him, all you peoples. ",
-        "For His mercy is great towards us, and the truth of the Lord endures forever. ",
-    ]
 
-    data = parse_document("For_vespers_variable.pdf")
-    pprint.pprint(data, width=100)
+def build_pdf(data: dict, output_path: str = "output.pdf") -> str:
+    """
+    Builds the formatted Vespers bulletin PDF from an already-extracted
+    `data` dict (see extract_sections.parse_document) and writes it to
+    output_path. Returns output_path so callers can chain it straight
+    into e.g. send_email(attachment_path=...).
+    """
     pdf = FPDF()
 
     pdf.add_page()
@@ -210,4 +220,11 @@ if __name__ == "__main__":
               "but to attend to the soul since it is immortal. Wherefore, O righteous "
               "Mary, your spirit rejoices with the Angels.")
 
-    pdf.output("output.pdf")
+    pdf.output(output_path)
+    return output_path
+
+
+if __name__ == "__main__":
+    from extract_sections import parse_document
+
+    build_pdf(parse_document("For_vespers_variable.pdf"))
