@@ -1,1 +1,9 @@
 TrueType Font 'times new romanB' is missing the '.notdef' glyph. Fallback glyph will be provided.
+TrueType Font 'times new romanB' is missing the '.notdef' glyph. Fallback glyph will be provided.
+Traceback (most recent call last):
+  File "/Users/marcootero/Desktop/orthodoxScraper/run.py", line 14, in <module>
+    bulletin_path = build_pdf(data, output_path="output.pdf")
+  File "/Users/marcootero/Desktop/orthodoxScraper/write_pdf.py", line 144, in build_pdf
+    for i, verse_prayer in enumerate(data['sections']['stichera']):
+                                     ~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+KeyError: 'stichera'

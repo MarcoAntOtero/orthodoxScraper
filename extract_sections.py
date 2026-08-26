@@ -526,8 +526,11 @@ def parse_document(filename: str) -> dict:
         sections[f"{key}_glory"] = []
         sections[f"{key}_both_now"] = []
 
-    if "Stichera" in text:
-        section_text = get_section(text, r"Stichera", r"\(No Entrance\)")
+    if "Stichera" in text or "Show Stichologia" in text:
+        # Some weekday pages (no major feast) use "Show Stichologia" -- a
+        # UI toggle label -- instead of an actual "Stichera." heading in
+        # front of this section's content. Either one marks the same spot.
+        section_text = get_section(text, r"Stichera\.?|Show Stichologia", r"\(No Entrance\)")
         hymns_text, doxology = split_doxology(section_text)
         _assemble_doxology(sections, "stichera", doxology)
         sections["stichera"] = _process_verse_section(hymns_text, split_verse_prayer)
