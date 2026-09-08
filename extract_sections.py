@@ -7,7 +7,79 @@ def extract_text(filename: str) -> str:
     """Pull raw text out of every page of the PDF and join it into one string."""
     with pdfplumber.open(filename) as pdf:
         text = "\n".join(page.extract_text() or "" for page in pdf.pages)
-    return fix_drop_caps(text)
+    return fix_marker_adjacent_drop_caps(fix_drop_caps(strip_ui_chrome(text)))
+
+
+# The source page these PDFs are printed from embeds its own UI controls
+# inline between hymn paragraphs, and pdfplumber pulls them in as if they
+# were document text. Two distinct widgets show up:
+#   - a share/print toolbar ("Find Aa [a]" font-size control, a
+#     "Link to ..." URL line) that only appears once near the top;
+#   - a per-hymn collapsible-section toggle (a literal "l" chevron glyph)
+#     that recurs before every "Mode N." hymn.
+# Both widgets' icons extract as glyphs from the same font's Private Use
+# Area block (U+E000-U+F8FF); when a row is short one icon, what should
+# have been another glyph instead extracts as a literal empty "[ ]"
+# checkbox -- the visible symptom that originally surfaced this.
+#
+# The collapsible toggle sits exactly where a hymn's decorative drop-cap
+# first letter is rendered, and on some hymns pdfplumber fuses that
+# drop-cap directly onto the following word with no space at all
+# ("Oblessed couple!" instead of "O blessed couple!"). That fusion can't
+# be fixed with a general rule -- "Our" and "Israel" are real words that
+# start the same way elsewhere in these documents -- so it's only safe
+# to correct right here, immediately after a chrome block we've just
+# confirmed is a toggle icon, not in body text generally.
+_PUA_ICON_CLASS = "[-]"
+UI_CHROME_PATTERN = re.compile(
+    r"(?:"
+    r"\[ \]\s*(?:" + _PUA_ICON_CLASS + r"\s*)+"          # "[ ]" checkbox trigger, any icon-run length
+    r"|l\s*(?:" + _PUA_ICON_CLASS + r"\s*)+"                # "l" chevron trigger, any icon-run length
+    r"|(?:" + _PUA_ICON_CLASS + r"\s*){2,}"                  # untriggered: only a genuine 2+ icon row counts
+    r")"
+    r"(?:Find Aa \[a\]\s*(?:" + _PUA_ICON_CLASS + r"\s*)+)?"
+    r"(?:Link to [^\n]*\n?)?"
+    r"(?:([OI])(?=[a-z]))?"
+)
+
+# Some icon rows don't extract as a clean standalone block at all -- the
+# individual glyph gets interleaved INSIDE a word instead (e.g. an
+# "Anna, blessed" hymn line extracting as
+# "\uf0c9An\uf0fena,\uf146 ble\uf186sse\uf129d \uf062is" instead) because its bounding
+# box overlaps the surrounding letters on the page. Once UI_CHROME_PATTERN
+# above has removed the clean standalone rows, any PUA glyph still left
+# over is one of these interleaved ones -- there's no legitimate use of
+# this codepoint range in real prayer text, so it's safe to strip
+# wherever it appears, mid-word included.
+_LONE_PUA_ICON = re.compile(_PUA_ICON_CLASS)
+
+# Occasionally one glyph from the SAME icon row maps, through a broken
+# font ToUnicode table, to an ordinary printable character instead of its
+# PUA codepoint -- indistinguishable from real text by codepoint alone
+# (the same underlying issue that elsewhere produced a literal "[ ]" and
+# "[a]" instead of a PUA glyph). The only reliable signal left is
+# position: it shows up as a short, word-less junk line (a few letters,
+# commas, spaces -- no real word) immediately before a line that still
+# has an interleaved PUA glyph in it, so this is scoped to exactly that
+# adjacency and never touches a real line of hymn text elsewhere.
+# Requires at least one trailing comma/space (`+`, not `*`) so this can't
+# also match the legitimate bare "l" chevron trigger UI_CHROME_PATTERN
+# depends on (a single letter alone on its line, no punctuation after it).
+_JUNK_LINE_BEFORE_ICON_WORD = re.compile(
+    r"(?m)^[a-z]{1,4}(?:[ ,])+\n(?=[^\n]*" + _PUA_ICON_CLASS + r")"
+)
+
+
+def strip_ui_chrome(text: str) -> str:
+    # Must run BEFORE any PUA stripping: UI_CHROME_PATTERN's mandatory PUA
+    # run also matches a single leftover glyph on its own (not just a
+    # clean standalone block), and .sub() replaces every match in the
+    # text, not just the first -- so by the time it's done, every PUA
+    # glyph interleaved mid-word is already gone and this lookahead would
+    # have nothing left to find.
+    text = _JUNK_LINE_BEFORE_ICON_WORD.sub("", text)
+    text = UI_CHROME_PATTERN.sub(lambda m: (m.group(1) + " ") if m.group(1) else "", text)
+    return _LONE_PUA_ICON.sub("", text)
 
 
 # Some documents render a decorative oversized first letter of each hymn
@@ -37,6 +109,26 @@ def fix_drop_caps(text: str) -> str:
         return letter  # drop the newline so it glues onto the next word
 
     return re.sub(r"(?m)^([A-Z])\n(?=[a-z])", merge, text)
+
+
+# A decorative drop-cap "O" or "I" opening a new hymn sometimes fuses
+# directly onto the following word with ZERO separator at all -- not even
+# the newline fix_drop_caps() handles above (e.g. "OMartyr", "Ihonor",
+# "OSavior" instead of "O Martyr", "I honor", "O Savior"). This always
+# happens right where a fresh hymn/verse starts: immediately after a
+# citation bracket ("[SAAS]"), a "Mode N."/"Tone N." marker, or a "Glory."
+# heading. Scoping to right after one of those three markers specifically
+# (rather than "any solitary O/I at a line/sentence start") is what keeps
+# this safe -- real sentences starting with "Our", "Israel", "On" etc.
+# follow ordinary prayer text ending in a period, never one of these three
+# structural markers, so they're never candidates here.
+_MARKER_ADJACENT_DROP_CAP = re.compile(
+    r"(\]\s*|(?:Mode|Tone)\s*(?:pl\.\s*\d+|\d+)\.\s*|Glory\.\s*)([OI])(?=[A-Za-z])"
+)
+
+
+def fix_marker_adjacent_drop_caps(text: str) -> str:
+    return _MARKER_ADJACENT_DROP_CAP.sub(lambda m: m.group(1) + m.group(2) + " ", text)
 
 
 def _find_local_repeat(letters: str, seed_len: int = 25, max_gap: int = 450) -> tuple[int, int, int] | None:
@@ -453,6 +545,55 @@ def split_glory_both_now(section_text: str) -> dict:
     }
 
 
+def _is_garbled_subsequence(candidate_letters: str, reference_letters: str) -> bool:
+    """
+    True if every letter of `candidate_letters` appears in
+    `reference_letters`, in the same order, with `candidate_letters`
+    strictly shorter -- the fingerprint of a rendering glitch that
+    dropped some characters from an otherwise-identical run (e.g. "Glor
+    Both no" vs. "Glory. Both now."), not just two strings that happen to
+    start the same way.
+    """
+    if not candidate_letters or len(candidate_letters) >= len(reference_letters):
+        return False
+    pos = 0
+    for ch in candidate_letters:
+        pos = reference_letters.find(ch, pos)
+        if pos == -1:
+            return False
+        pos += 1
+    return True
+
+
+def _strip_garbled_heading_lead_in(hymns_text: str, doxology_text: str) -> str:
+    """
+    Some documents render a short garbled duplicate of the "Glory. Both
+    now." heading immediately before the real one (e.g. "Glor Both no"
+    right before "Glory. Both now."). It's the same rendering glitch
+    remove_garbled_duplicates handles for full hymn paragraphs, but too
+    short to ever hit that function's 25-letter minimum -- and by the
+    time hymns_text/doxology_text are split apart here, neither string
+    holds both copies together for it to compare anyway. So this checks
+    the trailing line of hymns_text against the heading that immediately
+    follows in doxology_text: if its letters are a strict, in-order
+    subset of the heading's own letters, it's the same glitch and gets
+    dropped; a real final verse line won't coincidentally be a
+    subsequence of "glorybothnow", so this doesn't risk real content.
+    """
+    stripped = hymns_text.rstrip()
+    last_newline = stripped.rfind("\n")
+    trailing_line = stripped[last_newline + 1:]
+
+    if not trailing_line or len(trailing_line.split()) > 4:
+        return hymns_text  # too long to plausibly be just the heading repeated
+
+    reference_letters = "".join(ch.lower() for ch in doxology_text[:40] if ch.isalpha())
+    candidate_letters = "".join(ch.lower() for ch in trailing_line if ch.isalpha())
+    if _is_garbled_subsequence(candidate_letters, reference_letters):
+        return stripped[:last_newline + 1] if last_newline != -1 else ""
+    return hymns_text
+
+
 def split_doxology(section_text: str) -> tuple[str, dict | None]:
     """
     Cuts a section's text at the first "Glory." into (hymns_before_it,
@@ -467,6 +608,7 @@ def split_doxology(section_text: str) -> tuple[str, dict | None]:
         return section_text, None
     hymns_text = section_text[:glory_match.start()]
     doxology_text = section_text[glory_match.start():]
+    hymns_text = _strip_garbled_heading_lead_in(hymns_text, doxology_text)
     return hymns_text, split_glory_both_now(doxology_text)
 
 
@@ -536,7 +678,14 @@ def parse_document(filename: str) -> dict:
         sections["stichera"] = _process_verse_section(hymns_text, split_verse_prayer)
 
     if "Aposticha" in text:
-        section_text = get_section(text, r"Aposticha(?:\s+of the Feast)?\.", r"Stand for the reading of prayers")
+        # The heading isn't always just "Aposticha." or "Aposticha of the
+        # Feast." -- feast days can use their own phrasing (e.g. "Aposticha
+        # for the Theotokos."), so match anything up to the line's period
+        # rather than a fixed set of exact phrasings. Bounded to "no
+        # newline before the period" so this can't cross into the next
+        # line and can't match the unrelated nav-menu "Aposticha" entry
+        # near the top of the page (which has no period on its own line).
+        section_text = get_section(text, r"Aposticha(?:\s+[^\n.]+)?\.", r"Stand for the reading of prayers")
         hymns_text, doxology = split_doxology(section_text)
         _assemble_doxology(sections, "aposticha", doxology)
         sections["aposticha"] = _process_verse_section(hymns_text, split_aposticha_verses)

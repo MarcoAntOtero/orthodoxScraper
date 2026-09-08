@@ -166,28 +166,37 @@ def build_pdf(data: dict, output_path: str = "output.pdf") -> str:
 
     oldTone = write_glory_both_now(pdf, data, "stichera", oldTone)
 
-    # Aposticha now
-    pdf.set_text_color(255, 0, 0)
-    pdf.set_font(style='U', size=12)
-    pdf.multi_cell(w=0, h=6, text="Aposticha", align='L', new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font(style="", size=12)
-    pdf.write(h=6, text=f"Tone {data['sections']['aposticha'][0]['tone']} ")
-    pdf.set_text_color(0, 0, 0)
-    pdf.write(h=6, text=data['sections']['aposticha'][0]['prayer'])
-    pdf.ln()
-    pdf.ln(4)
-
-    for i, verse_prayer in enumerate(data['sections']['aposticha'][1:]):
-        oldTone = oldToneChecker(oldTone, verse_prayer['tone'], pdf)  # check tone change and print if necessary
-        pdf.set_font(style="BI", size=12)
-        pdf.write(h=6, text=verse_prayer['verse'])
-
+    # Aposticha now -- not every weekday page has one (see extract_sections
+    # .parse_document, which only sets this key when an "Aposticha" heading
+    # was found at all), so skip the whole section rather than assuming
+    # index 0 exists, matching the guard write_glory_both_now already uses
+    # for its own optional doxology entries below.
+    if data['sections']['aposticha']:
+        pdf.set_text_color(255, 0, 0)
+        pdf.set_font(style='U', size=12)
+        pdf.multi_cell(w=0, h=6, text="Aposticha", align='L', new_x="LMARGIN", new_y="NEXT")
         pdf.set_font(style="", size=12)
-        pdf.write(h=6, text=verse_prayer['prayer'])
-
+        pdf.write(h=6, text=f"Tone {data['sections']['aposticha'][0]['tone']} ")
+        pdf.set_text_color(0, 0, 0)
+        pdf.write(h=6, text=data['sections']['aposticha'][0]['prayer'])
         pdf.ln()
         pdf.ln(4)
 
+        for i, verse_prayer in enumerate(data['sections']['aposticha'][1:]):
+            oldTone = oldToneChecker(oldTone, verse_prayer['tone'], pdf)  # check tone change and print if necessary
+            pdf.set_font(style="BI", size=12)
+            pdf.write(h=6, text=verse_prayer['verse'])
+
+            pdf.set_font(style="", size=12)
+            pdf.write(h=6, text=verse_prayer['prayer'])
+
+            pdf.ln()
+            pdf.ln(4)
+
+    # write_glory_both_now has its own empty-check and stays outside the
+    # guard above -- a Glory/Both-now doxology can be present even on a
+    # day where the Aposticha verse list itself parsed empty, since
+    # extract_sections pulls them from the same source text separately.
     oldTone = write_glory_both_now(pdf, data, "aposticha", oldTone)
 
     # Apolytikion now
